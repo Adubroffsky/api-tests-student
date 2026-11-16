@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	//"fmt"
 	"io"
 	"testing"
 
@@ -31,5 +32,6 @@ func Login(t *testing.T, username, password string) models.LoginOkResponse {
 	err := json.Unmarshal(respArray, &loginResponse)
 	require.NoError(t, err)
 
+	//fmt.Println("JWT TOKEN:", loginResponse.Token)
 	return loginResponse
 }

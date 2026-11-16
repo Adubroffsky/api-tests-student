@@ -5,51 +5,106 @@
 1. [Swagger-спецификация](https://testboard.avito.com/swagger/index.html)
 2. [Техническое задание](https://docs.google.com/document/d/1IZ9SxEcePoQT6lyEmukycp1qNok4HZtok73UQnPwKSA/edit?usp=sharing)
 3. [Библиотека для написания API-тестов](https://github.com/steinfletcher/apitest)
-4. [Мощная библиотека анализа JSON для Go](https://github.com/tidwall/gjson)
+4. [Библиотека для анализа JSON в Go](https://github.com/tidwall/gjson)
+
+## Требования
+
+Для запуска проекта необходимы:
+
+- Go версии 1.25.1 или выше;
+- Git;
+- IDE для разработки, например [GoLand](https://www.jetbrains.com/go/) или [VS Code](https://code.visualstudio.com/).
+
+## Подготовка проекта
+
+1. Склонируйте репозиторий:
+
+```bash
+git clone https://github.com/<your-username>/api-tests-student.git
+```
+
+2. Перейдите в каталог проекта:
+
+```bash
+cd api-tests-student
+```
+
+3. Установите зависимости:
+
+```bash
+go mod tidy
+```
+
+## Настройка переменных окружения
+
+В корне проекта создайте файл `.env.override`.
+
+Укажите в нём данные двух тестовых пользователей:
+
+```env
+TEST_LOGIN=your_login
+TEST_PASSWORD=your_password
+
+SECOND_TEST_LOGIN=your_second_login
+SECOND_TEST_PASSWORD=your_second_password
+```
+
+- `TEST_LOGIN` и `TEST_PASSWORD` — логин и пароль первого тестового пользователя.
+- `SECOND_TEST_LOGIN` и `SECOND_TEST_PASSWORD` — логин и пароль второго тестового пользователя.
+
+Для локального запуска можно также использовать файл `.env`. При загрузке настроек сначала читается `.env`, затем `.env.override`.
+
+**Важно:** не публикуйте логины и пароли и не добавляйте `.env.override` в Git.
 
 ## Запуск тестов
 
-1. Установите любое IDE для разработки: [Jetbrains GoLand](https://www.jetbrains.com/ru-ru/go/) (Платное или по студенческой лицензии), [VS Code](https://code.visualstudio.com/) (бесплатное).
-2. Установите [Git](https://git-scm.com/install/) на компьютер
-3. [Установите](https://go.dev/doc/install) Go версии 1.25.1
-4. [Настройте](https://docs.github.com/ru/authentication/connecting-to-github-with-ssh) доступ к своему Github-аккаунту
-   по SSH-ключу.
-5. Склонируйте себе репозиторий: `git clone <путь к вашему репозиторию>`
-6. Подтяните необходимые зависимости через команду в корне проекта:
+Для запуска всех тестов из корня проекта:
 
 ```bash
-   go mod tidy
+go test -p 1 -count=1 -v ./...
 ```
 
-7. В файле `.env.override` (создайте его в корне, если нет) выставьте правильные значения для переменных окружения:
+Параметр `-p 1` запускает пакеты последовательно, а `-count=1` отключает использование кэша результатов тестирования.
 
-```
-TEST_LOGIN=your_login
-TEST_PASSWORD=your_password
-```
+Для запуска отдельных наборов тестов:
 
-8. Для запуска всех тестов достаточно выполнить команду в корне проекта:
+**Объявления:**
 
 ```bash
-  go test -v ./...
+go test -v ./tests/scenarios/advertisement/
 ```
 
-9. Отдельный пакет с тестами можно запустить командой:
+**Избранное:**
 
 ```bash
-  go test -v ./tests/scenarios/myAdvertisement/
+go test -v ./tests/scenarios/favorites/
 ```
+
+**Мои объявления:**
+
+```bash
+go test -v ./tests/scenarios/myAdvertisement/
+```
+
+## Тестовая фотография
+
+Файл `test_photo.webp` используется тестами при создании объявлений.
+
+Он должен находиться в корне проекта. Не перемещайте и не удаляйте его.
 
 ## Логирование
 
-Для включения логирования request/response в консоль: выставьте переменную окружения `DEBUG=true` в
-`.env.override`
+Для включения логирования HTTP-запросов и ответов в консоль добавьте в `.env.override`:
+
+```env
+DEBUG=true
+```
 
 ## Запуск линтера
 
-1. Установить приложение [golangci-lint](https://golangci-lint.run/docs/welcome/install/local/)
-2. Запуск линтера (из корня репозитория):
+1. Установите [golangci-lint](https://golangci-lint.run/docs/welcome/install/local/).
+2. Запустите проверку из корня проекта:
 
 ```bash
-  golangci-lint run
+golangci-lint run
 ```
