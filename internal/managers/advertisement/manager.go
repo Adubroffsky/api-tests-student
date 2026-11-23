@@ -211,3 +211,32 @@ func CreateAdvertisementWithoutDescription(
 
 	return string(body)
 }
+
+func CreateAdvertisementWithRawData(
+	t *testing.T,
+	token string,
+	title string,
+	description string,
+	price string,
+	quantity string,
+	expectedStatusCode int,
+	photoPaths ...string,
+) string {
+	response := advertisementClient.HttpPostAdvertisementWithRawData(
+		t,
+		token,
+		title,
+		description,
+		price,
+		quantity,
+		photoPaths...,
+	)
+	defer response.Body.Close()
+
+	require.Equal(t, expectedStatusCode, response.StatusCode)
+
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+
+	return string(body)
+}

@@ -19,6 +19,13 @@ import (
 	base "api-tests-template/tests"
 )
 
+const (
+	testPhotoPath   = "testdata/test_photo.webp"
+	testDescription = "Test description"
+	testPrice       = 100
+	testQuantity    = 1
+)
+
 type TestSuite struct {
 	suite.Suite
 	loginData models.LoginOkResponse
@@ -47,9 +54,9 @@ func (s *TestSuite) TearDownSuite() {
 func (s *TestSuite) TestCreateAdvertisementPositive() {
 	title := fmt.Sprintf("API test advertisement %d", time.Now().UnixNano())
 	description := "Test advertisement description"
-	price := 100
-	quantity := 1
-	photoPath := "../../../test_photo.webp"
+	price := testPrice
+	quantity := testQuantity
+	photoPath := testPhotoPath
 
 	// Проверяем наличие тестовой фотографии.
 	_, err := os.Stat(photoPath)
@@ -153,10 +160,10 @@ func (s *TestSuite) TestCreateAdvertisementWithLongTitle() {
 		s.T(),
 		s.loginData.Token,
 		title,
-		"Test description",
-		100,
-		1,
-		"../../../test_photo.webp",
+		testDescription,
+		testPrice,
+		testQuantity,
+		testPhotoPath,
 		http.StatusBadRequest,
 	)
 
@@ -174,10 +181,10 @@ func (s *TestSuite) TestCreateAdvertisementWithEmptyTitle() {
 		s.T(),
 		s.loginData.Token,
 		"",
-		"Test description",
-		100,
-		1,
-		"../../../test_photo.webp",
+		testDescription,
+		testPrice,
+		testQuantity,
+		testPhotoPath,
 		http.StatusBadRequest,
 	)
 
@@ -191,10 +198,10 @@ func (s *TestSuite) TestCreateAdvertisementWithNegativePrice() {
 		s.T(),
 		s.loginData.Token,
 		"Advertisement with negative price",
-		"Test description",
+		testDescription,
 		-1,
-		1,
-		"../../../test_photo.webp",
+		testQuantity,
+		testPhotoPath,
 		http.StatusBadRequest,
 	)
 
@@ -207,10 +214,10 @@ func (s *TestSuite) TestCreateAdvertisementWithoutAuth() {
 	body := advertisementManager.CreateAdvertisementWithoutAuth(
 		s.T(),
 		"Advertisement without auth",
-		"Test description",
-		100,
-		1,
-		"../../../test_photo.webp",
+		testDescription,
+		testPrice,
+		testQuantity,
+		testPhotoPath,
 		http.StatusUnauthorized,
 	)
 
@@ -232,10 +239,10 @@ func (s *TestSuite) TestCreateAdvertisementWithInvalidToken() {
 	body := advertisementManager.CreateAdvertisementWithInvalidAuth(
 		s.T(),
 		"Advertisement with invalid token",
-		"Test description",
-		100,
-		1,
-		"../../../test_photo.webp",
+		testDescription,
+		testPrice,
+		testQuantity,
+		testPhotoPath,
 		http.StatusUnauthorized,
 	)
 
@@ -249,9 +256,9 @@ func (s *TestSuite) TestCreateAdvertisementWithoutPhoto() {
 		s.T(),
 		s.loginData.Token,
 		"Advertisement without photo",
-		"Test description",
-		100,
-		1,
+		testDescription,
+		testPrice,
+		testQuantity,
 		http.StatusBadRequest,
 	)
 
@@ -265,12 +272,67 @@ func (s *TestSuite) TestCreateAdvertisementWithoutDescription() {
 		s.T(),
 		s.loginData.Token,
 		"Advertisement without description",
-		100,
-		1,
-		"../../../test_photo.webp",
+		testPrice,
+		testQuantity,
+		testPhotoPath,
 		http.StatusBadRequest,
 	)
 
 	require.Equal(s.T(), "invalid_request", gjson.Get(body, "error").String())
 	require.NotEmpty(s.T(), gjson.Get(body, "message").String())
+}
+
+func (s *TestSuite) TestCreateAdvertisementWithStringPrice() {
+	advertisementManager.CreateAdvertisementWithRawData(
+		s.T(),
+		s.loginData.Token,
+		"Test advertisement with string price",
+		testDescription,
+		"invalid-price",
+		"1",
+		http.StatusBadRequest,
+		testPhotoPath,
+	)
+}
+
+func (s *TestSuite) TestCreateAdvertisementWithStringQuantity() {
+	advertisementManager.CreateAdvertisementWithRawData(
+		s.T(),
+		s.loginData.Token,
+		"Test advertisement with string quantity",
+		testDescription,
+		"100",
+		"invalid-quantity",
+		http.StatusBadRequest,
+		testPhotoPath,
+	)
+}
+
+func (s *TestSuite) TestCreateAdvertisementWithMoreThanThreePhotos() {
+	advertisementManager.CreateAdvertisementWithRawData(
+		s.T(),
+		s.loginData.Token,
+		"Test advertisement with more than three photos",
+		testDescription,
+		"100",
+		"1",
+		http.StatusBadRequest,
+		testPhotoPath,
+		testPhotoPath,
+		testPhotoPath,
+		testPhotoPath,
+	)
+}
+
+func (s *TestSuite) TestCreateAdvertisementWithUnsupportedPhotoFormat() {
+	advertisementManager.CreateAdvertisementWithRawData(
+		s.T(),
+		s.loginData.Token,
+		"Test advertisement with unsupported photo format",
+		testDescription,
+		"100",
+		"1",
+		http.StatusBadRequest,
+		"testdata/test_photo.txt",
+	)
 }

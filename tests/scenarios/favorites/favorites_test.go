@@ -19,6 +19,14 @@ import (
 	base "api-tests-template/tests"
 )
 
+const (
+	testPhotoPath               = "testdata/test_photo.webp"
+	testPrice                   = 100
+	testQuantity                = 1
+	nonExistentAdvertisementID  = "00000000-0000-4000-8000-000000000000"
+	unauthorizedAdvertisementID = "non-existent-advertisement-id"
+)
+
 type TestSuite struct {
 	suite.Suite
 	loginData       models.LoginOkResponse
@@ -33,14 +41,12 @@ func (s *TestSuite) SetupSuite() {
 	base.SetupSuite()
 	base.Precondition("Авторизация двух пользователей")
 
-	// Авторизация первого пользователя.
 	s.loginData = auth.Login(
 		s.T(),
 		os.Getenv("TEST_LOGIN"),
 		os.Getenv("TEST_PASSWORD"),
 	)
 
-	// Авторизация второго пользователя.
 	s.secondLoginData = auth.Login(
 		s.T(),
 		os.Getenv("SECOND_TEST_LOGIN"),
@@ -53,14 +59,10 @@ func (s *TestSuite) TearDownSuite() {
 }
 
 func (s *TestSuite) TestAddAndDeleteFavoritePositive() {
-	// 1. Создаём объявление от имени первого пользователя.
 	title := fmt.Sprintf("API favorite test %d", time.Now().UnixNano())
 	description := "Test advertisement for favorites"
-	price := 100
-	quantity := 1
-	photoPath := "../../../test_photo.webp"
 
-	_, err := os.Stat(photoPath)
+	_, err := os.Stat(testPhotoPath)
 	require.NoError(s.T(), err, "Тестовая фотография не найдена")
 
 	createBody := advertisementManager.CreateAdvertisement(
@@ -68,9 +70,9 @@ func (s *TestSuite) TestAddAndDeleteFavoritePositive() {
 		s.loginData.Token,
 		title,
 		description,
-		price,
-		quantity,
-		photoPath,
+		testPrice,
+		testQuantity,
+		testPhotoPath,
 		http.StatusCreated,
 	)
 
@@ -84,12 +86,10 @@ func (s *TestSuite) TestAddAndDeleteFavoritePositive() {
 		"Для теста нужны два разных пользователя",
 	)
 
-	// Удаляем объявление в конце теста от имени владельца.
 	defer advertisementManager.DeleteAdvertisement(
 		s.T(), s.loginData.Token, adID, http.StatusNoContent,
 	)
 
-	// 2. Второй пользователь добавляет объявление в избранное.
 	addBody := favoritesManager.AddFavorite(
 		s.T(),
 		s.secondLoginData.Token,
@@ -99,7 +99,6 @@ func (s *TestSuite) TestAddAndDeleteFavoritePositive() {
 
 	require.NotEmpty(s.T(), gjson.Get(addBody, "favorite_id").String())
 
-	// Если тест завершится с ошибкой, удаляем избранное.
 	favoriteAdded := true
 	defer func() {
 		if favoriteAdded {
@@ -115,7 +114,6 @@ func (s *TestSuite) TestAddAndDeleteFavoritePositive() {
 		gjson.Get(addBody, "advertisement.id").String(),
 	)
 
-	// 3. Второй пользователь проверяет список избранного.
 	favoritesBody := favoritesManager.GetFavorites(
 		s.T(), s.secondLoginData.Token, http.StatusOK,
 	)
@@ -132,13 +130,11 @@ func (s *TestSuite) TestAddAndDeleteFavoritePositive() {
 
 	require.True(s.T(), found, "Объявление не найдено в избранном")
 
-	// 4. Второй пользователь удаляет объявление из избранного.
 	favoritesManager.DeleteFavorite(
 		s.T(), s.secondLoginData.Token, adID, http.StatusNoContent,
 	)
 	favoriteAdded = false
 
-	// 5. Проверяем, что объявления больше нет в избранном.
 	favoritesBody = favoritesManager.GetFavorites(
 		s.T(), s.secondLoginData.Token, http.StatusOK,
 	)
@@ -157,14 +153,10 @@ func (s *TestSuite) TestAddAndDeleteFavoritePositive() {
 }
 
 func (s *TestSuite) TestDeletedAdvertisementDisappearsFromFavorites() {
-	// 1. Первый пользователь создаёт объявление.
 	title := fmt.Sprintf("API deleted favorite test %d", time.Now().UnixNano())
 	description := "Test advertisement for favorites deletion"
-	price := 100
-	quantity := 1
-	photoPath := "../../../test_photo.webp"
 
-	_, err := os.Stat(photoPath)
+	_, err := os.Stat(testPhotoPath)
 	require.NoError(s.T(), err, "Тестовая фотография не найдена")
 
 	createBody := advertisementManager.CreateAdvertisement(
@@ -172,16 +164,15 @@ func (s *TestSuite) TestDeletedAdvertisementDisappearsFromFavorites() {
 		s.loginData.Token,
 		title,
 		description,
-		price,
-		quantity,
-		photoPath,
+		testPrice,
+		testQuantity,
+		testPhotoPath,
 		http.StatusCreated,
 	)
 
 	adID := gjson.Get(createBody, "id").String()
 	require.NotEmpty(s.T(), adID, "ID созданного объявления пустой")
 
-	// Если тест завершится раньше удаления, удаляем объявление.
 	adDeleted := false
 	defer func() {
 		if !adDeleted {
@@ -191,7 +182,6 @@ func (s *TestSuite) TestDeletedAdvertisementDisappearsFromFavorites() {
 		}
 	}()
 
-	// 2. Второй пользователь добавляет объявление в избранное.
 	favoritesManager.AddFavorite(
 		s.T(),
 		s.secondLoginData.Token,
@@ -199,8 +189,6 @@ func (s *TestSuite) TestDeletedAdvertisementDisappearsFromFavorites() {
 		http.StatusCreated,
 	)
 
-	// Если тест завершится раньше удаления объявления,
-	// удаляем его из избранного.
 	favoriteAdded := true
 	defer func() {
 		if favoriteAdded {
@@ -210,7 +198,6 @@ func (s *TestSuite) TestDeletedAdvertisementDisappearsFromFavorites() {
 		}
 	}()
 
-	// 3. Проверяем, что объявление появилось в избранном.
 	favoritesBody := favoritesManager.GetFavorites(
 		s.T(), s.secondLoginData.Token, http.StatusOK,
 	)
@@ -224,14 +211,12 @@ func (s *TestSuite) TestDeletedAdvertisementDisappearsFromFavorites() {
 	}
 	require.True(s.T(), found, "Объявление не найдено в избранном до удаления")
 
-	// 4. Первый пользователь удаляет собственное объявление.
 	advertisementManager.DeleteAdvertisement(
 		s.T(), s.loginData.Token, adID, http.StatusNoContent,
 	)
 	adDeleted = true
 	favoriteAdded = false
 
-	// 5. Проверяем, что удалённого объявления больше нет в избранном.
 	favoritesBody = favoritesManager.GetFavorites(
 		s.T(), s.secondLoginData.Token, http.StatusOK,
 	)
@@ -265,7 +250,7 @@ func (s *TestSuite) TestAddFavoriteWithoutAuthorization() {
 	responseBody := favoritesManager.AddFavorite(
 		s.T(),
 		"",
-		"non-existent-advertisement-id",
+		unauthorizedAdvertisementID,
 		http.StatusUnauthorized,
 	)
 
@@ -276,18 +261,16 @@ func (s *TestSuite) TestDeleteFavoriteWithoutAuthorization() {
 	favoritesManager.DeleteFavorite(
 		s.T(),
 		"",
-		"non-existent-advertisement-id",
+		unauthorizedAdvertisementID,
 		http.StatusUnauthorized,
 	)
 }
 
 func (s *TestSuite) TestAddNonExistentFavorite() {
-	nonExistentAdID := "00000000-0000-4000-8000-000000000000"
-
 	responseBody := favoritesManager.AddFavorite(
 		s.T(),
 		s.secondLoginData.Token,
-		nonExistentAdID,
+		nonExistentAdvertisementID,
 		http.StatusNotFound,
 	)
 
@@ -296,12 +279,10 @@ func (s *TestSuite) TestAddNonExistentFavorite() {
 }
 
 func (s *TestSuite) TestDeleteNonExistentFavorite() {
-	nonExistentAdID := "00000000-0000-4000-8000-000000000000"
-
 	responseBody := favoritesManager.DeleteFavorite(
 		s.T(),
 		s.secondLoginData.Token,
-		nonExistentAdID,
+		nonExistentAdvertisementID,
 		http.StatusNotFound,
 	)
 
@@ -310,11 +291,9 @@ func (s *TestSuite) TestDeleteNonExistentFavorite() {
 }
 
 func (s *TestSuite) TestAddFavoriteTwice() {
-	// Первый пользователь создаёт объявление.
 	title := fmt.Sprintf("API duplicate favorite test %d", time.Now().UnixNano())
-	photoPath := "../../../test_photo.webp"
 
-	_, err := os.Stat(photoPath)
+	_, err := os.Stat(testPhotoPath)
 	require.NoError(s.T(), err, "Тестовая фотография не найдена")
 
 	createBody := advertisementManager.CreateAdvertisement(
@@ -322,21 +301,19 @@ func (s *TestSuite) TestAddFavoriteTwice() {
 		s.loginData.Token,
 		title,
 		"Test advertisement for duplicate favorite",
-		100,
-		1,
-		photoPath,
+		testPrice,
+		testQuantity,
+		testPhotoPath,
 		http.StatusCreated,
 	)
 
 	adID := gjson.Get(createBody, "id").String()
 	require.NotEmpty(s.T(), adID)
 
-	// Удаляем объявление после теста.
 	defer advertisementManager.DeleteAdvertisement(
 		s.T(), s.loginData.Token, adID, http.StatusNoContent,
 	)
 
-	// Второй пользователь добавляет объявление первый раз.
 	favoritesManager.AddFavorite(
 		s.T(),
 		s.secondLoginData.Token,
@@ -344,12 +321,10 @@ func (s *TestSuite) TestAddFavoriteTwice() {
 		http.StatusCreated,
 	)
 
-	// Удаляем избранное после теста.
 	defer favoritesManager.DeleteFavorite(
 		s.T(), s.secondLoginData.Token, adID, http.StatusNoContent,
 	)
 
-	// Повторное добавление должно вернуть 409 Conflict.
 	responseBody := favoritesManager.AddFavorite(
 		s.T(),
 		s.secondLoginData.Token,
@@ -370,11 +345,9 @@ func (s *TestSuite) TestAddFavoriteTwice() {
 }
 
 func (s *TestSuite) TestAddOwnAdvertisementToFavorites() {
-	// Первый пользователь создаёт собственное объявление.
 	title := fmt.Sprintf("API own favorite test %d", time.Now().UnixNano())
-	photoPath := "../../../test_photo.webp"
 
-	_, err := os.Stat(photoPath)
+	_, err := os.Stat(testPhotoPath)
 	require.NoError(s.T(), err, "Тестовая фотография не найдена")
 
 	createBody := advertisementManager.CreateAdvertisement(
@@ -382,21 +355,19 @@ func (s *TestSuite) TestAddOwnAdvertisementToFavorites() {
 		s.loginData.Token,
 		title,
 		"Test own advertisement",
-		100,
-		1,
-		photoPath,
+		testPrice,
+		testQuantity,
+		testPhotoPath,
 		http.StatusCreated,
 	)
 
 	adID := gjson.Get(createBody, "id").String()
 	require.NotEmpty(s.T(), adID)
 
-	// Удаляем объявление после теста.
 	defer advertisementManager.DeleteAdvertisement(
 		s.T(), s.loginData.Token, adID, http.StatusNoContent,
 	)
 
-	// Владелец пытается добавить своё объявление в избранное.
 	responseBody := favoritesManager.AddFavorite(
 		s.T(),
 		s.loginData.Token,

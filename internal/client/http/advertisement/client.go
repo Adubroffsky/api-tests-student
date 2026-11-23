@@ -150,3 +150,28 @@ func HttpPostAdvertisementWithoutDescription(
 		Expect(t).
 		End().Response
 }
+
+// HttpPostAdvertisementWithRawData отправляет объявление с исходными строковыми значениями.
+// Используется для проверки негативных сценариев валидации.
+func HttpPostAdvertisementWithRawData(
+	t *testing.T,
+	token string,
+	title string,
+	description string,
+	price string,
+	quantity string,
+	photoPaths ...string,
+) *http.Response {
+	request := apiRunner.GetRunner().Auth(token).Create().
+		Post(path.AdvertisementPath).
+		MultipartFormData("title", title).
+		MultipartFormData("description", description).
+		MultipartFormData("price", price).
+		MultipartFormData("quantity", quantity)
+
+	if len(photoPaths) > 0 {
+		request.MultipartFile("photos", photoPaths...)
+	}
+
+	return request.Expect(t).End().Response
+}
